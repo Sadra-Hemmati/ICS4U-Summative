@@ -1,23 +1,38 @@
 # SubsystemSim Requirements
-# Install with: pip install -r requirements.txt
+# =========================
+# This project uses CONDA for environment management
+# See SETUP_CONDA.md for installation instructions
+
+# ===================
+# CONDA PACKAGES
+# ===================
+# Install these via conda (in environment.yml):
+#   - pythonocc-core=7.9.0  (CAD/STEP file handling)
+#   - python=3.11
+
+# ===================
+# PIP PACKAGES
+# ===================
+# Install these via pip after conda setup:
+#   pip install -r requirements.txt
 
 # Core simulation
 pybullet>=3.2.5
 numpy>=1.24.0
 websockets>=12.0
 
-# WPILib (RobotPy 2026)
-robotpy[all]>=2026.0.1b1
+# WPILib (RobotPy 2026) - for Python robot code examples
+robotpy>=2026.0.0
 pyntcore>=2026.0.0
 
-# Mesh processing & config
-trimesh>=3.21.0
+# Mesh processing
+trimesh>=4.0.0
+
+# Configuration
 pyyaml>=6.0
 
-# OPTIONAL (only if doing tests)
-pytest>=7.3.0
+# GUI (usually included with Python, but just in case)
+# tkinter is part of standard library, no pip install needed
 
-# OPTIONAL (for STEP file conversion)
-# FreeCAD - Install separately from https://www.freecad.org/downloads.php
-# Not available via pip - requires manual installation
-# If not installed, users can use online STEP→OBJ converters
+# Testing (optional)
+pytest>=7.3.0

@@ -14,7 +14,8 @@
       "Bash(ren:*)",
       "Bash(\"C:\\\\Users\\\\sadra\\\\ICS4U\\\\ICS4U-Summative\\\\venv\\\\Scripts\\\\python.exe\" -m robotpy sim --help)",
       "Bash(\"venv\\\\Scripts\\\\python.exe\" -c \"import websockets; help\\(websockets\\)\")",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:dev.opencascade.org)"
     ],
     "deny": [],
     "ask": []
