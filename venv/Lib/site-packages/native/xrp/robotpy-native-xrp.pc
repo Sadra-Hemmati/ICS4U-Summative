@@ -1,0 +1,11 @@
+prefix=${pcfiledir}
+includedir=${prefix}/include
+libdir=${prefix}/lib
+pkgconf_pypi_initpy=native.xrp._init_robotpy_native_xrp
+
+Name: xrp
+Description: WPILib XRP vendor library
+Version: 2026.1.1
+Requires: robotpy-native-wpilib
+Libs: -L${libdir} -lxrpVendordep
+Cflags: -I${includedir}

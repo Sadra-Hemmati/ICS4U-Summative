@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: robotpy-apriltag
+Version: 2026.1.1
+Summary: RobotPy bindings for WPILib's AprilTag library
+Project-URL: Source code, https://github.com/robotpy/mostrobotpy
+Author-email: RobotPy Development Team <robotpy@googlegroups.com>
+License-Expression: BSD-3-Clause
+Requires-Dist: robotpy-native-apriltag==2026.1.1
+Requires-Dist: robotpy-wpimath==2026.1.1
+Requires-Dist: robotpy-wpiutil==2026.1.1

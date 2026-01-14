@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: robotpy-native-apriltag
+Version: 2026.1.1
+Summary: WPILib AprilTag Library
+License-Expression: BSD-3-Clause
+Requires-Dist: robotpy-native-wpimath==2026.1.1
+Requires-Dist: robotpy-native-wpiutil==2026.1.1

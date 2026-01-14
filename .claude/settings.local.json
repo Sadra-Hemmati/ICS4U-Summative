@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "WebSearch",
+      "Bash(python:*)",
+      "Bash(timeout /t 8)",
+      "Bash(findstr:*)",
+      "WebFetch(domain:convert3d.org)",
+      "Bash(timeout:*)",
+      "Bash(venvScriptspython.exe -c \"from subsystemsim.core.config import load_config; from subsystemsim.physics.urdf_generator import generate_urdf; model = load_config\\(''examples/simple_arm/arm_config.json''\\); urdf_path = generate_urdf\\(model, output_dir=''generated_urdfs''\\); print\\(f''Generated: {urdf_path}''\\)\")",
+      "Bash(\"venv\\\\Scripts\\\\python.exe\" -c \"from subsystemsim.core.config import load_config; from subsystemsim.physics.urdf_generator import generate_urdf; model = load_config\\(''examples/simple_arm/arm_config.json''\\); urdf_path = generate_urdf\\(model, output_dir=''generated_urdfs''\\); print\\(f''Generated: {urdf_path}''\\)\")",
+      "Bash(move:*)",
+      "Bash(ren:*)",
+      "Bash(\"C:\\\\Users\\\\sadra\\\\ICS4U\\\\ICS4U-Summative\\\\venv\\\\Scripts\\\\python.exe\" -m robotpy sim --help)",
+      "Bash(\"venv\\\\Scripts\\\\python.exe\" -c \"import websockets; help\\(websockets\\)\")",
+      "WebFetch(domain:github.com)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

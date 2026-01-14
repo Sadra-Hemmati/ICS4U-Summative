@@ -1,0 +1,2 @@
+[robotpy_sim.2026]
+ds-socket = halsim_ds_socket

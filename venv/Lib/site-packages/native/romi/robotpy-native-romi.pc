@@ -1,0 +1,11 @@
+prefix=${pcfiledir}
+includedir=${prefix}/include
+libdir=${prefix}/lib
+pkgconf_pypi_initpy=native.romi._init_robotpy_native_romi
+
+Name: romi
+Description: WPILib Romi support library
+Version: 2026.1.1
+Requires: robotpy-native-wpilib
+Libs: -L${libdir} -lromiVendordep
+Cflags: -I${includedir}

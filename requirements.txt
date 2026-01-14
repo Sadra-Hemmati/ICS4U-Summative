@@ -1,0 +1,23 @@
+# SubsystemSim Requirements
+# Install with: pip install -r requirements.txt
+
+# Core simulation
+pybullet>=3.2.5
+numpy>=1.24.0
+websockets>=12.0
+
+# WPILib (RobotPy 2026)
+robotpy[all]>=2026.0.1b1
+pyntcore>=2026.0.0
+
+# Mesh processing & config
+trimesh>=3.21.0
+pyyaml>=6.0
+
+# OPTIONAL (only if doing tests)
+pytest>=7.3.0
+
+# OPTIONAL (for STEP file conversion)
+# FreeCAD - Install separately from https://www.freecad.org/downloads.php
+# Not available via pip - requires manual installation
+# If not installed, users can use online STEP→OBJ converters

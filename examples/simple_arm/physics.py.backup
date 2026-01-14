@@ -1,0 +1,62 @@
+"""
+Physics engine configuration for pyfrc simulation.
+
+pyfrc automatically imports this file when running in simulation mode.
+It expects a PhysicsEngine class with specific methods.
+
+This file bridges the robot code with SubsystemSim.
+"""
+
+from pathlib import Path
+import sys
+import os
+
+# Add project root to path so we can import subsystemsim
+# When pyfrc loads this, __file__ may not be defined, so use os.getcwd()
+try:
+    # Try using __file__ first (works in most cases)
+    project_root = Path(__file__).parent.parent.parent
+except NameError:
+    # Fallback: assume we're running from examples/simple_arm
+    project_root = Path(os.getcwd()).parent.parent
+
+sys.path.insert(0, str(project_root))
+
+from subsystemsim.hal_bridge.physics_interface import SubsystemPhysicsEngine
+
+
+class PhysicsEngine:
+    """
+    Physics engine for pyfrc simulation.
+
+    pyfrc will instantiate this class and call update_sim() every tick.
+    """
+
+    def __init__(self, physics_controller):
+        """
+        Initialize physics engine.
+
+        Args:
+            physics_controller: pyfrc PhysicsController (provides HAL access)
+        """
+        # Get path to arm config - use absolute path from cwd
+        try:
+            config_path = Path(__file__).parent / "arm_config.json"
+        except NameError:
+            # Fallback: config in current directory
+            config_path = Path(os.getcwd()) / "arm_config.json"
+
+        # Initialize SubsystemSim physics engine
+        self.sim = SubsystemPhysicsEngine(physics_controller, str(config_path))
+
+    def update_sim(self, now: float, tm_diff: float):
+        """
+        Update simulation state.
+
+        Called by pyfrc every simulation tick (~20ms).
+
+        Args:
+            now: Current simulation time (seconds)
+            tm_diff: Time since last update (seconds)
+        """
+        self.sim.update_sim(now, tm_diff)

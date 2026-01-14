@@ -1,0 +1,8 @@
+[robotpy_cli.2026]
+run-xrp = xrp.cli:RunXrp
+
+[robotpy_sim.2026]
+xrp = xrp.extension
+
+[pkg_config]
+xrp = xrp

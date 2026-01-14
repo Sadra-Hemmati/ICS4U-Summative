@@ -1,0 +1,5 @@
+[robotpy_cli.2026]
+run-romi = romi.cli:RunRomi
+
+[pkg_config]
+romi = romi

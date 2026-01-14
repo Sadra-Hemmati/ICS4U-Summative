@@ -1,0 +1,11 @@
+prefix=${pcfiledir}
+includedir=${prefix}/include
+libdir=${prefix}/lib
+pkgconf_pypi_initpy=native.apriltag._init_robotpy_native_apriltag
+
+Name: apriltag
+Description: WPILib AprilTag Library
+Version: 2026.1.1
+Requires: robotpy-native-wpiutil robotpy-native-wpimath
+Libs: -L${libdir} -lapriltag
+Cflags: -I${includedir}

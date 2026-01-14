@@ -1,0 +1,52 @@
+{
+  "name": "simple_arm",
+  "links": [
+    {
+      "name": "base",
+      "mesh": "meshes/base.obj",
+      "mass": 2.0,
+      "center_of_mass": [0.0, 0.0, 0.05],
+      "inertia": null
+    },
+    {
+      "name": "arm",
+      "mesh": "meshes/arm.obj",
+      "mass": 1.5,
+      "center_of_mass": [0.0, 0.0, 0.25],
+      "inertia": null
+    }
+  ],
+  "joints": [
+    {
+      "name": "shoulder",
+      "type": "revolute",
+      "parent": "base",
+      "child": "arm",
+      "axis": [0.0, 0.0, 1.0],
+      "origin": [0.0, 0.0, 0.1],
+      "limits": null,
+      "velocity_limit": 1000.0,
+      "effort_limit": 100.0
+    }
+  ],
+  "motors": [
+    {
+      "name": "shoulder_motor",
+      "type": "neo",
+      "joint": "shoulder",
+      "gear_ratio": 60.0,
+      "hal_port": 0,
+      "inverted": false
+    }
+  ],
+  "sensors": [
+    {
+      "name": "arm_encoder",
+      "type": "encoder",
+      "joint": "shoulder",
+      "hal_ports": [0, 1],
+      "ticks_per_rev": 2048,
+      "offset": 0.0
+    }
+  ]
+}
