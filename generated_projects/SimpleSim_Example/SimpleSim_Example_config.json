@@ -1,0 +1,104 @@
+{
+  "name": "SimpleSim_Example",
+  "links": [
+    {
+      "name": "Elevator_Base",
+      "mesh": "meshes/Elevator_Base.stl",
+      "mass": 4.552363181200548,
+      "center_of_mass": [
+        8.627819642385304e-05,
+        0.008932690907972227,
+        0.7470979155880756
+      ],
+      "inertia": [
+        [
+          0.04552363181200548,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.04552363181200548,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.04552363181200548
+        ]
+      ]
+    },
+    {
+      "name": "Carriage",
+      "mesh": "meshes/Carriage.stl",
+      "mass": 1.9031493208779748,
+      "center_of_mass": [
+        -0.01975106726280527,
+        -0.028267282854895083,
+        0.07868671260021018
+      ],
+      "inertia": [
+        [
+          0.01903149320877975,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.01903149320877975,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.01903149320877975
+        ]
+      ]
+    }
+  ],
+  "joints": [
+    {
+      "name": "Elevator_Joint",
+      "type": "prismatic",
+      "parent": "Elevator_Base",
+      "child": "Carriage",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "origin": [
+        -0.00983239453319071,
+        -0.009667295973461429,
+        0.4128923140941429
+      ],
+      "limits": [
+        0.0,
+        4.0
+      ],
+      "velocity_limit": 10.0,
+      "effort_limit": 100.0
+    }
+  ],
+  "motors": [
+    {
+      "name": "left_motor",
+      "type": "falcon500",
+      "joint": "Elevator_Joint",
+      "gear_ratio": 7.75,
+      "controller_type": "can",
+      "hal_port": 0,
+      "inverted": false
+    },
+    {
+      "name": "right_motor",
+      "type": "falcon500",
+      "joint": "Elevator_Joint",
+      "gear_ratio": 7.75,
+      "controller_type": "can",
+      "hal_port": 1,
+      "inverted": false
+    }
+  ],
+  "sensors": []
+}

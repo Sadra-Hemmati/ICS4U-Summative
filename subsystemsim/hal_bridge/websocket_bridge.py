@@ -77,18 +77,34 @@ class HALWebSocketBridge:
         self.engine.load_urdf(urdf_path, name=self.model.name)
         print("[OK] Physics engine ready\n")
 
-        # Create motor models
+        # Create motor models - separate mappings for PWM and CAN
         print("Initializing motor models...")
-        self.motors: Dict[int, tuple] = {}  # hal_port -> (joint_name, DCMotor, gear_ratio)
+        self.pwm_motors: Dict[int, tuple] = {}  # pwm_port -> (joint_name, DCMotor, gear_ratio, inverted)
+        self.can_motors: Dict[int, tuple] = {}  # can_id -> (joint_name, DCMotor, gear_ratio, inverted)
+
         for motor_config in self.model.motors:
             dc_motor = DCMotor(motor_config.motor_type.value)
-            self.motors[motor_config.hal_port] = (
-                motor_config.joint_name,
-                dc_motor,
-                motor_config.gear_ratio
-            )
-            print(f"  PWM[{motor_config.hal_port}] -> {motor_config.joint_name} "
-                  f"({motor_config.motor_type.value}, ratio={motor_config.gear_ratio})")
+            inverted = getattr(motor_config, 'inverted', False)
+            controller_type = getattr(motor_config, 'controller_type', 'pwm')
+
+            if controller_type == "can":
+                self.can_motors[motor_config.hal_port] = (
+                    motor_config.joint_name,
+                    dc_motor,
+                    motor_config.gear_ratio,
+                    inverted
+                )
+                print(f"  CAN[{motor_config.hal_port}] -> {motor_config.joint_name} "
+                      f"({motor_config.motor_type.value}, ratio={motor_config.gear_ratio})")
+            else:
+                self.pwm_motors[motor_config.hal_port] = (
+                    motor_config.joint_name,
+                    dc_motor,
+                    motor_config.gear_ratio,
+                    inverted
+                )
+                print(f"  PWM[{motor_config.hal_port}] -> {motor_config.joint_name} "
+                      f"({motor_config.motor_type.value}, ratio={motor_config.gear_ratio})")
         print()
 
         # Create sensor mappings
@@ -105,8 +121,9 @@ class HALWebSocketBridge:
                       f"({sensor_config.ticks_per_revolution} ticks/rev)")
         print()
 
-        # Motor command storage (PWM values from robot code)
-        self.motor_commands: Dict[int, float] = {port: 0.0 for port in self.motors.keys()}
+        # Motor command storage (values from robot code)
+        self.pwm_commands: Dict[int, float] = {port: 0.0 for port in self.pwm_motors.keys()}
+        self.can_commands: Dict[int, float] = {can_id: 0.0 for can_id in self.can_motors.keys()}
 
         # Encoder state tracking for delta-based updates
         self.last_encoder_count: Dict[int, int] = {port: 0 for port in self.encoders.keys()}
@@ -117,9 +134,12 @@ class HALWebSocketBridge:
         self.last_update = time.time()
         self.sim_rate = 50  # Hz (20ms per update)
 
+        total_motors = len(self.pwm_motors) + len(self.can_motors)
         print("="*70)
         print("Bridge initialized! Waiting for WebSocket connection...")
-        print(f"Physics ready for model '{self.model.name}' with {len(self.motors)} motors and {len(self.encoders)} encoders")
+        print(f"Physics ready for model '{self.model.name}' with {total_motors} motors and {len(self.encoders)} encoders")
+        print(f"  PWM motors: {list(self.pwm_motors.keys())}")
+        print(f"  CAN motors: {list(self.can_motors.keys())}")
         print("="*70 + "\n")
 
     async def connect(self):
@@ -140,7 +160,8 @@ class HALWebSocketBridge:
     async def subscribe_to_devices(self):
         """No subscription needed - robot code sends device states automatically."""
         print("Waiting for robot code to send device states...")
-        print(f"Expecting PWM device(s): {list(self.motors.keys())}")
+        print(f"Expecting PWM device(s): {list(self.pwm_motors.keys())}")
+        print(f"Expecting CAN device(s): {list(self.can_motors.keys())}")
         print(f"Will publish Encoder device(s): {list(self.encoders.keys())}")
         print()
 
@@ -152,28 +173,49 @@ class HALWebSocketBridge:
 
             # Handle PWM motor commands (robot output)
             if msg_type == "PWM":
-                # Device is just the port number as string: "0", "1", etc.
                 device_str = data.get("device", "")
                 try:
                     pwm_port = int(device_str)
 
-                    if pwm_port in self.motors:
+                    if pwm_port in self.pwm_motors:
                         msg_data = data.get("data", {})
 
-                        # Check if device was initialized (optional)
                         if msg_data.get("<init", False):
                             print(f"[OK] PWM[{pwm_port}] initialized by robot code")
 
-                        # Get speed value from robot (uses "<speed" = output from robot)
                         if "<speed" in msg_data:
                             speed = msg_data["<speed"]
-                            self.motor_commands[pwm_port] = speed
-                            # Only print motor commands occasionally to avoid spam
+                            self.pwm_commands[pwm_port] = speed
                             if self._msg_count % 50 == 0:
                                 print(f"[MOTOR] PWM[{pwm_port}] = {speed:.3f}")
 
                 except ValueError:
-                    pass  # Not a valid port number
+                    pass
+
+            # Handle CAN motor commands (SimDevice messages)
+            elif msg_type == "SimDevice":
+                device_str = data.get("device", "")
+                msg_data = data.get("data", {})
+
+                # Parse CAN ID from device string
+                # Format: "SPARK MAX [5]" or "Talon FX[7]" etc.
+                can_id = self._parse_can_id(device_str)
+
+                if can_id is not None and can_id in self.can_motors:
+                    if msg_data.get("<init", False):
+                        print(f"[OK] CAN[{can_id}] ({device_str}) initialized by robot code")
+
+                    # Try different field names for motor output
+                    speed = None
+                    for field in ["<Applied Output", "<Motor Output", "<speed", "<Duty Cycle"]:
+                        if field in msg_data:
+                            speed = msg_data[field]
+                            break
+
+                    if speed is not None:
+                        self.can_commands[can_id] = speed
+                        if self._msg_count % 50 == 0:
+                            print(f"[MOTOR] CAN[{can_id}] = {speed:.3f}")
 
             # Handle Encoder initialization (robot queries)
             elif msg_type == "Encoder":
@@ -184,18 +226,26 @@ class HALWebSocketBridge:
                     if dio_port in self.encoders:
                         msg_data = data.get("data", {})
 
-                        # Check if device was initialized
                         if msg_data.get("<init", False):
                             self.encoder_initialized[dio_port] = True
                             print(f"[OK] Encoder[{dio_port}] initialized by robot code")
 
                 except ValueError:
-                    pass  # Not a valid port number
+                    pass
 
         except json.JSONDecodeError:
-            pass  # Ignore malformed messages
+            pass
         except Exception as e:
             print(f"Error handling message: {e}")
+
+    def _parse_can_id(self, device_str: str) -> Optional[int]:
+        """Parse CAN ID from device string like 'SPARK MAX [5]' or 'Talon FX[7]'."""
+        import re
+        # Match patterns like [5], [12], etc.
+        match = re.search(r'\[(\d+)\]', device_str)
+        if match:
+            return int(match.group(1))
+        return None
 
     async def publish_encoder_data(self):
         """Publish encoder data to robot code (delta-based updates only)."""
@@ -254,11 +304,35 @@ class HALWebSocketBridge:
         self.last_update = now
 
         # Apply motor torques based on PWM commands
-        for pwm_port, pwm_value in self.motor_commands.items():
-            joint_name, motor, gear_ratio = self.motors[pwm_port]
+        for pwm_port, pwm_value in self.pwm_commands.items():
+            joint_name, motor, gear_ratio, inverted = self.pwm_motors[pwm_port]
+
+            # Apply inversion
+            if inverted:
+                pwm_value = -pwm_value
 
             # Convert PWM to voltage
             voltage = pwm_value * 12.0  # FRC nominal voltage
+
+            # Get current joint state
+            position, velocity = self.engine.get_joint_state(self.model.name, joint_name)
+
+            # Calculate torque using motor model
+            torque = motor.calculate_torque(voltage, velocity, gear_ratio)
+
+            # Apply to physics
+            self.engine.apply_joint_torque(self.model.name, joint_name, torque)
+
+        # Apply motor torques based on CAN commands
+        for can_id, can_value in self.can_commands.items():
+            joint_name, motor, gear_ratio, inverted = self.can_motors[can_id]
+
+            # Apply inversion
+            if inverted:
+                can_value = -can_value
+
+            # Convert to voltage (CAN values are also -1.0 to 1.0)
+            voltage = can_value * 12.0
 
             # Get current joint state
             position, velocity = self.engine.get_joint_state(self.model.name, joint_name)
@@ -276,13 +350,21 @@ class HALWebSocketBridge:
         # Debug output every 2 seconds
         if int(now) % 2 == 0 and int(now) != getattr(self, '_last_debug_time', 0):
             self._last_debug_time = int(now)
-            # Show joint states for first motor
-            if self.motors:
-                first_port = list(self.motors.keys())[0]
-                joint_name = self.motors[first_port][0]
-                pos, vel = self.engine.get_joint_state(self.model.name, joint_name)
-                pwm_val = self.motor_commands.get(first_port, 0.0)
-                print(f"[PHYSICS t={now:.1f}s] Joint '{joint_name}': pos={pos:.3f} rad, vel={vel:.3f} rad/s, PWM={pwm_val:.3f}")
+            # Show joint states for first motor (PWM or CAN)
+            first_joint = None
+            first_cmd = 0.0
+            if self.pwm_motors:
+                first_port = list(self.pwm_motors.keys())[0]
+                first_joint = self.pwm_motors[first_port][0]
+                first_cmd = self.pwm_commands.get(first_port, 0.0)
+            elif self.can_motors:
+                first_id = list(self.can_motors.keys())[0]
+                first_joint = self.can_motors[first_id][0]
+                first_cmd = self.can_commands.get(first_id, 0.0)
+
+            if first_joint:
+                pos, vel = self.engine.get_joint_state(self.model.name, first_joint)
+                print(f"[PHYSICS t={now:.1f}s] Joint '{first_joint}': pos={pos:.3f} rad, vel={vel:.3f} rad/s, cmd={first_cmd:.3f}")
 
     async def run(self):
         """Main simulation loop."""

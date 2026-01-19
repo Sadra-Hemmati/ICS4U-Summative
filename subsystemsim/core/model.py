@@ -108,13 +108,15 @@ class Motor:
         motor_type: Type of FRC motor (NEO, CIM, etc.)
         joint_name: Name of joint this motor drives
         gear_ratio: Gear reduction ratio (output:input, e.g., 60 for 60:1)
-        hal_port: PWM or CAN port used in robot code
+        controller_type: "pwm" or "can" - type of motor controller
+        hal_port: PWM port or CAN ID used in robot code
         inverted: Whether motor direction is inverted
     """
     name: str
     motor_type: MotorType
     joint_name: str
     gear_ratio: float = 1.0
+    controller_type: str = "pwm"  # "pwm" or "can"
     hal_port: int = 0
     inverted: bool = False
 
@@ -131,16 +133,20 @@ class Sensor:
 
     Attributes:
         name: Unique identifier for this sensor
-        sensor_type: Type of sensor ("encoder", "limit_switch", etc.)
+        sensor_type: Type of sensor ("encoder", "cancoder", "duty_cycle", "limit_switch")
         joint_name: Name of joint this sensor measures
+        controller_type: "dio" or "can" - type of sensor connection
         hal_ports: DIO ports used in robot code (e.g., [0, 1] for quadrature encoder)
+        can_id: CAN ID for CAN-based sensors (CANcoder, etc.)
         ticks_per_revolution: Encoder resolution (for encoders)
         offset: Zero position offset in radians/meters
     """
     name: str
-    sensor_type: str  # "encoder", "limit_switch", "analog_potentiometer"
+    sensor_type: str  # "encoder", "cancoder", "duty_cycle", "limit_switch"
     joint_name: str
+    controller_type: str = "dio"  # "dio" or "can"
     hal_ports: List[int] = field(default_factory=list)
+    can_id: Optional[int] = None  # CAN ID for CAN-based sensors
     ticks_per_revolution: int = 2048  # Common value for many FRC encoders
     offset: float = 0.0
 

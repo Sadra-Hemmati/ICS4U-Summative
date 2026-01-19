@@ -93,14 +93,14 @@ class PhysicsEngine:
             # Reset joint to zero position
             p.resetJointState(body_id, i, targetValue=0.0, targetVelocity=0.0)
 
-            # Configure damping for realistic motor behavior
-            # Joint damping simulates friction/back-EMF resistance
-            # Lower values = smoother acceleration (less friction)
+            # Note: Joint damping is now primarily set in the URDF <dynamics> element
+            # This provides more realistic motor behavior (velocity-proportional resistance).
+            # The URDF damping value takes precedence over changeDynamics if specified.
+            # We keep linearDamping and angularDamping at 0 so only joint damping applies.
             p.changeDynamics(
                 body_id, i,
                 linearDamping=0.0,
-                angularDamping=0.0,
-                jointDamping=0.1  # Very low friction - allows smooth acceleration
+                angularDamping=0.0
             )
 
             # Disable motor by setting velocity control with zero force

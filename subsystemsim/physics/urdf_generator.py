@@ -13,13 +13,19 @@ import xml.dom.minidom as minidom
 from ..core.model import SubsystemModel, Link, Joint, JointType
 
 
-def generate_urdf(model: SubsystemModel, output_dir: str = None) -> str:
+def generate_urdf(model: SubsystemModel, output_dir: str = None,
+                  joint_damping: float = 0.5, joint_friction: float = 0.0) -> str:
     """
     Generate URDF file from SubsystemModel.
 
     Args:
         model: The subsystem model to convert
         output_dir: Directory to save URDF (default: temp directory)
+        joint_damping: Damping coefficient for all joints (Nm/(rad/s))
+                       Higher values = more resistance to motion = more realistic
+                       Default 0.5 provides good balance for FRC mechanisms
+        joint_friction: Coulomb friction coefficient for joints
+                        Default 0.0 for smooth motor-driven joints
 
     Returns:
         Path to generated URDF file
@@ -48,9 +54,9 @@ def generate_urdf(model: SubsystemModel, output_dir: str = None) -> str:
     for link in model.links:
         robot.append(_create_link_element(link, urdf_path))
 
-    # Add all joints
+    # Add all joints with damping for realistic motor behavior
     for joint in model.joints:
-        robot.append(_create_joint_element(joint))
+        robot.append(_create_joint_element(joint, damping=joint_damping, friction=joint_friction))
 
     # Convert to pretty XML string
     xml_string = _prettify_xml(robot)
@@ -58,6 +64,7 @@ def generate_urdf(model: SubsystemModel, output_dir: str = None) -> str:
         f.write(xml_string)
 
     print(f"Generated URDF: {urdf_path}")
+    print(f"  Joint damping: {joint_damping} Nm/(rad/s)")
     return str(urdf_path.absolute())
 
 
@@ -124,7 +131,7 @@ def _create_link_element(link: Link, urdf_path: Path) -> ET.Element:
     return link_elem
 
 
-def _create_joint_element(joint: Joint) -> ET.Element:
+def _create_joint_element(joint: Joint, damping: float = 0.5, friction: float = 0.0) -> ET.Element:
     """
     Create a URDF <joint> element from Joint object.
 
@@ -135,7 +142,17 @@ def _create_joint_element(joint: Joint) -> ET.Element:
       <origin xyz="..." rpy="..."/>
       <axis xyz="..."/>
       <limit lower="..." upper="..." velocity="..." effort="..."/>
+      <dynamics damping="..." friction="..."/>
     </joint>
+
+    Args:
+        joint: Joint object from model
+        damping: Damping coefficient for joint (Nm/(rad/s) for revolute, N/(m/s) for prismatic)
+                 This creates velocity-proportional resistance, similar to motor back-EMF.
+                 Higher values = more resistance to motion = stops faster when force removed.
+                 Typical values: 0.1-1.0 for small joints, 1.0-5.0 for large joints.
+        friction: Coulomb friction coefficient (constant resistance to motion)
+                  Set to 0 for smooth motor-driven joints.
     """
     # Map our JointType enum to URDF type strings
     joint_type_map = {
@@ -180,6 +197,15 @@ def _create_joint_element(joint: Joint) -> ET.Element:
                 velocity=str(joint.velocity_limit),
                 effort=str(joint.effort_limit)
             )
+
+        # Add dynamics element for realistic motor behavior
+        # damping: creates velocity-proportional resistance (like motor back-EMF)
+        # friction: constant resistance to motion (like static friction)
+        ET.SubElement(
+            joint_elem, "dynamics",
+            damping=str(damping),
+            friction=str(friction)
+        )
 
     return joint_elem
 

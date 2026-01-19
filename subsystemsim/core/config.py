@@ -95,6 +95,7 @@ def load_config(config_path: Union[str, Path]) -> SubsystemModel:
             motor_type=MotorType(motor_data['type']),
             joint_name=motor_data['joint'],
             gear_ratio=motor_data.get('gear_ratio', 1.0),
+            controller_type=motor_data.get('controller_type', 'pwm'),
             hal_port=motor_data.get('hal_port', 0),
             inverted=motor_data.get('inverted', False)
         )
@@ -107,7 +108,9 @@ def load_config(config_path: Union[str, Path]) -> SubsystemModel:
             name=sensor_data['name'],
             sensor_type=sensor_data.get('type', 'encoder'),
             joint_name=sensor_data['joint'],
+            controller_type=sensor_data.get('controller_type', 'dio'),
             hal_ports=sensor_data.get('hal_ports', []),
+            can_id=sensor_data.get('can_id'),
             ticks_per_revolution=sensor_data.get('ticks_per_rev', 2048),
             offset=sensor_data.get('offset', 0.0)
         )
@@ -174,6 +177,7 @@ def save_config(model: SubsystemModel, config_path: Union[str, Path]):
                 'type': motor.motor_type.value,
                 'joint': motor.joint_name,
                 'gear_ratio': motor.gear_ratio,
+                'controller_type': motor.controller_type,
                 'hal_port': motor.hal_port,
                 'inverted': motor.inverted
             }
@@ -184,7 +188,9 @@ def save_config(model: SubsystemModel, config_path: Union[str, Path]):
                 'name': sensor.name,
                 'type': sensor.sensor_type,
                 'joint': sensor.joint_name,
+                'controller_type': sensor.controller_type,
                 'hal_ports': sensor.hal_ports,
+                'can_id': sensor.can_id,
                 'ticks_per_rev': sensor.ticks_per_revolution,
                 'offset': sensor.offset
             }

@@ -15,7 +15,11 @@
       "Bash(\"C:\\\\Users\\\\sadra\\\\ICS4U\\\\ICS4U-Summative\\\\venv\\\\Scripts\\\\python.exe\" -m robotpy sim --help)",
       "Bash(\"venv\\\\Scripts\\\\python.exe\" -c \"import websockets; help\\(websockets\\)\")",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:dev.opencascade.org)"
+      "WebFetch(domain:dev.opencascade.org)",
+      "Bash(C:Userssadraminiconda3envssubsystemsimpython.exe -c \"from OCC.Core import TopoDS; print\\([x for x in dir\\(TopoDS\\) if ''solid'' in x.lower\\(\\) or ''Solid'' in x]\\)\")",
+      "Bash(C:Userssadraminiconda3envssubsystemsimpython.exe -m py_compile subsystemsim/cad/cad_editor.py)",
+      "Bash(/c/Users/sadra/miniconda3/envs/subsystemsim/python.exe -m py_compile:*)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": [],
     "ask": []
