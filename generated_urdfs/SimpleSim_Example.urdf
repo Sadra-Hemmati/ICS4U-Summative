@@ -3,12 +3,12 @@
   <link name="Base">
     <visual>
       <geometry>
-        <mesh filename="../generated_projects/SimpleSim_Example/meshes/Base.stl"/>
+        <mesh filename="../projects_data/190d5889-94f3-4fcb-8735-7b16cd9e7a9b/meshes/Base.stl"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="../generated_projects/SimpleSim_Example/meshes/Base.stl"/>
+        <mesh filename="../projects_data/190d5889-94f3-4fcb-8735-7b16cd9e7a9b/meshes/Base.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -20,12 +20,12 @@
   <link name="Carriage">
     <visual>
       <geometry>
-        <mesh filename="../generated_projects/SimpleSim_Example/meshes/Carriage.stl"/>
+        <mesh filename="../projects_data/190d5889-94f3-4fcb-8735-7b16cd9e7a9b/meshes/Carriage.stl"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="../generated_projects/SimpleSim_Example/meshes/Carriage.stl"/>
+        <mesh filename="../projects_data/190d5889-94f3-4fcb-8735-7b16cd9e7a9b/meshes/Carriage.stl"/>
       </geometry>
     </collision>
     <inertial>

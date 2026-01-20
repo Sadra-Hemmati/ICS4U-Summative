@@ -94,7 +94,7 @@ class MotorDialog(QDialog):
         mech_layout.addRow("Gear Ratio:", gear_layout)
 
         gear_hint = QLabel("e.g., 60 for 60:1 gearbox (motor turns 60x for 1 output turn)")
-        gear_hint.setStyleSheet("color: #666; font-size: 11px;")
+        gear_hint.setStyleSheet("color: #B0B0B0; font-size: 11px;")
         mech_layout.addRow("", gear_hint)
 
         # Inverted

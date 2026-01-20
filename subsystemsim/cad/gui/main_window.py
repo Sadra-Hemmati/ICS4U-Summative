@@ -12,6 +12,7 @@ from PyQt5.QtCore import Qt
 from OCC.Display.SimpleGui import init_display
 
 from .side_panel import SidePanel
+from .dark_theme import apply_dark_theme, DARK_STYLESHEET
 
 if TYPE_CHECKING:
     from ..cad_editor import CADEditor
@@ -27,6 +28,7 @@ class CADMainWindow(QMainWindow):
     def __init__(self, editor: 'CADEditor'):
         super().__init__()
         self.editor = editor
+        self.editor._main_window = self  # Store reference for auto-close after generation
         self.display = None
         self._occ_window = None
         self._canvas = None
@@ -38,6 +40,9 @@ class CADMainWindow(QMainWindow):
         """Set up the main window with viewer and side panel."""
         self.setWindowTitle(f"CAD Editor - {self.editor.subsystem.name}")
         self.resize(1400, 900)
+
+        # Apply dark theme stylesheet
+        self.setStyleSheet(DARK_STYLESHEET)
 
         # Initialize PythonOCC display (this creates its own window)
         print("Initializing PythonOCC display...")

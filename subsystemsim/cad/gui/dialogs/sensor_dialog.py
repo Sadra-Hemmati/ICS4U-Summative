@@ -135,7 +135,7 @@ class SensorDialog(QDialog):
         res_layout.addRow("Encoder Resolution:", res_input_layout)
 
         self.resolution_hint = QLabel("Standard quadrature: 2048. CANcoder: 4096.")
-        self.resolution_hint.setStyleSheet("color: #666; font-size: 11px;")
+        self.resolution_hint.setStyleSheet("color: #B0B0B0; font-size: 11px;")
         res_layout.addRow("", self.resolution_hint)
 
         layout.addWidget(res_group)

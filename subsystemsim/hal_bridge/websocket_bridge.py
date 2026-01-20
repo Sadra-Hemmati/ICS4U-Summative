@@ -397,13 +397,17 @@ class HALWebSocketBridge:
         This method is designed to be called after forces are calculated
         but can check current joint state at any time.
 
+        Only warns when the motor is actively commanding into the limit,
+        not when gravity or back-EMF causes force into the limit.
+
         Args:
-            joint_forces: Dict of {joint_name: [force, is_prismatic, effort_limit]}
+            joint_forces: Dict of {joint_name: [force, is_prismatic, effort_limit, command_direction]}
+                command_direction: sign of motor command (+1, -1, or 0)
         """
         # Tolerance for "at limit" detection (prevents false positives from float precision)
         LIMIT_TOLERANCE = 0.005  # 5mm for prismatic, 0.005 rad (~0.3 deg) for revolute
 
-        for joint_name, (force, is_prismatic, effort_limit) in joint_forces.items():
+        for joint_name, (force, is_prismatic, effort_limit, command_direction) in joint_forces.items():
             # Get joint configuration and current state
             joint_config = self.model.get_joint(joint_name)
             if not joint_config or joint_config.limits is None:
@@ -413,10 +417,12 @@ class HALWebSocketBridge:
             lower_limit, upper_limit = joint_config.limits
 
             # Check upper limit: position at/near upper AND force pushing upward (positive)
+            # Only warn if motor is actively commanding upward (not just back-EMF)
             at_upper = position >= (upper_limit - LIMIT_TOLERANCE)
             force_into_upper = force > 1.0  # More than 1N/Nm pushing into limit
+            commanding_into_upper = command_direction > 0  # Motor commanded to go up
 
-            if at_upper and force_into_upper:
+            if at_upper and force_into_upper and commanding_into_upper:
                 self.warnings.warn_joint_at_limit(
                     joint_name=joint_name,
                     position=position,
@@ -426,10 +432,12 @@ class HALWebSocketBridge:
                 )
 
             # Check lower limit: position at/near lower AND force pushing downward (negative)
+            # Only warn if motor is actively commanding downward (not just gravity/back-EMF)
             at_lower = position <= (lower_limit + LIMIT_TOLERANCE)
             force_into_lower = force < -1.0  # More than 1N/Nm pushing into limit
+            commanding_into_lower = command_direction < 0  # Motor commanded to go down
 
-            if at_lower and force_into_lower:
+            if at_lower and force_into_lower and commanding_into_lower:
                 self.warnings.warn_joint_at_limit(
                     joint_name=joint_name,
                     position=position,
@@ -446,7 +454,8 @@ class HALWebSocketBridge:
         self.last_update = now
 
         # Accumulate forces/torques per joint (for multiple motors driving same joint)
-        # Structure: {joint_name: (accumulated_force, is_prismatic, effort_limit)}
+        # Structure: {joint_name: [accumulated_force, is_prismatic, effort_limit, command_direction]}
+        # command_direction tracks if motor is actively commanding in a direction (+1, -1, or 0)
         joint_forces: Dict[str, list] = {}
 
         # Process PWM motors
@@ -456,6 +465,9 @@ class HALWebSocketBridge:
             # Apply inversion
             if inverted:
                 pwm_value = -pwm_value
+
+            # Track command direction before coast mode check (for warning system)
+            command_direction = 1 if pwm_value > 0.01 else (-1 if pwm_value < -0.01 else 0)
 
             # Coast mode: when command is near zero, don't apply motor forces
             # This prevents regenerative braking from fighting gravity
@@ -485,8 +497,11 @@ class HALWebSocketBridge:
 
             # Accumulate force for this joint
             if joint_name not in joint_forces:
-                joint_forces[joint_name] = [0.0, is_prismatic, effort_limit]
+                joint_forces[joint_name] = [0.0, is_prismatic, effort_limit, 0]
             joint_forces[joint_name][0] += force
+            # Track command direction (use strongest command if multiple motors)
+            if abs(command_direction) > abs(joint_forces[joint_name][3]):
+                joint_forces[joint_name][3] = command_direction
 
         # Process CAN motors
         for can_id, can_value in self.can_commands.items():
@@ -495,6 +510,9 @@ class HALWebSocketBridge:
             # Apply inversion
             if inverted:
                 can_value = -can_value
+
+            # Track command direction before coast mode check (for warning system)
+            command_direction = 1 if can_value > 0.01 else (-1 if can_value < -0.01 else 0)
 
             # Coast mode: when command is near zero, don't apply motor forces
             # This prevents regenerative braking from fighting gravity
@@ -525,11 +543,14 @@ class HALWebSocketBridge:
 
             # Accumulate force for this joint
             if joint_name not in joint_forces:
-                joint_forces[joint_name] = [0.0, is_prismatic, effort_limit]
+                joint_forces[joint_name] = [0.0, is_prismatic, effort_limit, 0]
             joint_forces[joint_name][0] += force
+            # Track command direction (use strongest command if multiple motors)
+            if abs(command_direction) > abs(joint_forces[joint_name][3]):
+                joint_forces[joint_name][3] = command_direction
 
         # Apply accumulated and clamped forces to each joint
-        for joint_name, (total_force, is_prismatic, effort_limit) in joint_forces.items():
+        for joint_name, (total_force, is_prismatic, effort_limit, command_direction) in joint_forces.items():
             # Clamp force to effort limit (prevents physics instability)
             unclamped_force = total_force
             total_force = max(-effort_limit, min(effort_limit, total_force))
@@ -537,10 +558,10 @@ class HALWebSocketBridge:
             # Apply the clamped force
             self.engine.apply_joint_torque(self.model.name, joint_name, total_force)
 
-            # Store for debug output
+            # Store for debug output and limit checking
             if not hasattr(self, '_last_applied_forces'):
                 self._last_applied_forces = {}
-            self._last_applied_forces[joint_name] = (unclamped_force, total_force, is_prismatic)
+            self._last_applied_forces[joint_name] = (unclamped_force, total_force, is_prismatic, command_direction)
 
         # Step physics simulation
         num_substeps = max(1, int(tm_diff / self.engine.TIMESTEP))
@@ -550,8 +571,8 @@ class HALWebSocketBridge:
         # Convert _last_applied_forces to format expected by _check_joint_limits
         if hasattr(self, '_last_applied_forces'):
             forces_for_check = {
-                name: [clamped, is_pris, self.joint_effort_limits.get(name, 100.0)]
-                for name, (unclamped, clamped, is_pris) in self._last_applied_forces.items()
+                name: [clamped, is_pris, self.joint_effort_limits.get(name, 100.0), cmd_dir]
+                for name, (unclamped, clamped, is_pris, cmd_dir) in self._last_applied_forces.items()
             }
             self._check_joint_limits(forces_for_check)
 
@@ -581,7 +602,7 @@ class HALWebSocketBridge:
                 # Get applied force info
                 force_info = ""
                 if hasattr(self, '_last_applied_forces') and first_joint in self._last_applied_forces:
-                    unclamped, clamped, _ = self._last_applied_forces[first_joint]
+                    unclamped, clamped, _, _ = self._last_applied_forces[first_joint]
                     if abs(unclamped - clamped) > 0.1:
                         force_info = f", force={clamped:.1f}{force_unit} (CLAMPED from {unclamped:.1f})"
                     else:

@@ -15,10 +15,10 @@ from .widgets.definition_list import DefinitionListWidget
 if TYPE_CHECKING:
     from ..cad_editor import CADEditor
 
-# Highlight colors (RGB 0-1)
-HIGHLIGHT_COLOR = (0.2, 0.8, 1.0)          # Cyan - general hover
-PARENT_HIGHLIGHT_COLOR = (0.4, 1.0, 0.4)   # Green - parent links
-CHILD_HIGHLIGHT_COLOR = (1.0, 0.6, 0.2)    # Orange - child links
+# Highlight colors (RGB 0-1) - Red accent theme matching SimpleSim
+HIGHLIGHT_COLOR = (0.7, 0.13, 0.2)         # Red accent (#B22234) - general hover
+PARENT_HIGHLIGHT_COLOR = (0.5, 0.1, 0.15)  # Dark red - parent links
+CHILD_HIGHLIGHT_COLOR = (0.9, 0.2, 0.25)   # Bright red - child links
 
 
 class SidePanel(QWidget):
@@ -56,7 +56,7 @@ class SidePanel(QWidget):
 
         # Title
         title = QLabel("Subsystem Definitions")
-        title.setStyleSheet("font-size: 14px; font-weight: bold; padding: 4px;")
+        title.setStyleSheet("font-size: 14px; font-weight: bold; padding: 4px; color: #FFFFFF;")
         layout.addWidget(title)
 
         # Tab widget
@@ -123,7 +123,7 @@ class SidePanel(QWidget):
 
         # Selection info at bottom
         self.selection_label = QLabel("Selection: None")
-        self.selection_label.setStyleSheet("color: #666; padding: 4px;")
+        self.selection_label.setStyleSheet("color: #B0B0B0; padding: 4px;")
         layout.addWidget(self.selection_label)
 
         # Set minimum width

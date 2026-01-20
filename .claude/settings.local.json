@@ -19,7 +19,10 @@
       "Bash(C:Userssadraminiconda3envssubsystemsimpython.exe -c \"from OCC.Core import TopoDS; print\\([x for x in dir\\(TopoDS\\) if ''solid'' in x.lower\\(\\) or ''Solid'' in x]\\)\")",
       "Bash(C:Userssadraminiconda3envssubsystemsimpython.exe -m py_compile subsystemsim/cad/cad_editor.py)",
       "Bash(/c/Users/sadra/miniconda3/envs/subsystemsim/python.exe -m py_compile:*)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(del \"C:\\\\Users\\\\sadra\\\\ICS4U\\\\ICS4U-Summative\\\\simplesim\\\\widgets\\\\rounded_frame.py\")",
+      "Bash(del \"\\\\?\\\\C:\\\\Users\\\\sadra\\\\ICS4U\\\\ICS4U-Summative\\\\nul\")",
+      "Bash(cmd /c \"del \\\\?\\\\C:\\\\Users\\\\sadra\\\\ICS4U\\\\ICS4U-Summative\\\\nul\")"
     ],
     "deny": [],
     "ask": []

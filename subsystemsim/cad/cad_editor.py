@@ -91,14 +91,14 @@ MUTED_COLORS = [
     (0.60, 0.55, 0.70),  # Violet
 ]
 
-# Selection highlight color (bright orange)
-SELECTION_COLOR = (1.0, 0.5, 0.0)
+# Selection highlight color (bright red - SimpleSim accent)
+SELECTION_COLOR = (0.9, 0.15, 0.15)
 
-# Assigned to link color (soft green to indicate part is defined)
-ASSIGNED_COLOR = (0.4, 0.7, 0.4)
+# Assigned to link color (dark red to indicate part is defined)
+ASSIGNED_COLOR = (0.5, 0.1, 0.1)
 
-# Undefined/unassigned parts color (soft red to indicate warning)
-UNDEFINED_COLOR = (0.8, 0.4, 0.4)
+# Undefined/unassigned parts color (warning orange)
+UNDEFINED_COLOR = (0.9, 0.5, 0.2)
 
 
 @dataclass
@@ -209,6 +209,8 @@ class CADEditor:
         self._canvas = None  # Qt canvas for mouse events
         self._unit_scale = 0.001  # Default: assume millimeters (most common in CAD)
         self._detected_unit = "millimeter"  # String name of detected unit
+        self._output_dir: Optional[str] = None  # Output directory for generated files (set via --output)
+        self._main_window = None  # Reference to main window for closing
 
     def _detect_step_units(self, file_path: str) -> Tuple[str, float]:
         """
@@ -2531,7 +2533,11 @@ class CADEditor:
     # =========================================================================
 
     def generate_output(self, output_dir: Optional[str] = None):
-        """Generate OBJ meshes, config.json, and URDF."""
+        """Generate OBJ meshes, config.json, and URDF.
+
+        If --output was specified on command line, uses that directory.
+        After generation, closes the editor if launched from SimpleSim.
+        """
         if not self.subsystem.links:
             print("[ERROR] No links defined. Define at least one link first.")
             return
@@ -2539,9 +2545,11 @@ class CADEditor:
         if not self.subsystem.static_parent_link:
             print("[WARNING] No static parent link set. Undefined parts will be ignored.")
 
-        # Determine output directory
+        # Determine output directory (priority: parameter > command-line --output > default)
         if output_dir:
             out_path = Path(output_dir)
+        elif self._output_dir:
+            out_path = Path(self._output_dir)
         else:
             out_path = Path("generated_projects") / self.subsystem.name
 
@@ -2605,6 +2613,13 @@ class CADEditor:
         print(f"1. Start your robot code with HAL Sim WebSocket extension")
         print(f"2. Run: python -m subsystemsim.hal_bridge.websocket_bridge {config_file}")
         print("="*60)
+
+        # If launched from SimpleSim (with --output), close the editor after generation
+        if self._output_dir and self._main_window:
+            print("\nClosing CAD editor (launched from SimpleSim)...")
+            # Use QTimer to close after a short delay so user can see the success message
+            from PyQt5.QtCore import QTimer
+            QTimer.singleShot(1500, self._main_window.close)
 
     def _export_link_mesh(self, link: LinkDefinition, output_dir: Path) -> Optional[Path]:
         """Export a link's parts as a single STL/OBJ mesh, scaled to meters."""
@@ -2771,7 +2786,13 @@ class CADEditor:
             config["sensors"].append(sensor_config)
 
         # Write config file
-        config_file = output_dir / f"{self.subsystem.name}_config.json"
+        # If launched from SimpleSim (with --output), use "config.json" to match project expectations
+        # Otherwise use the subsystem name for standalone usage
+        if self._output_dir:
+            config_file = output_dir / "config.json"
+        else:
+            config_file = output_dir / f"{self.subsystem.name}_config.json"
+
         with open(config_file, 'w') as f:
             json.dump(config, f, indent=2)
 
@@ -2809,6 +2830,7 @@ class CADEditor:
 def main():
     """Main entry point for CAD editor."""
     import sys
+    import argparse
     from pathlib import Path
 
     # Add project root to path so imports work when running directly
@@ -2816,14 +2838,26 @@ def main():
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="SubsystemSim CAD Editor")
+    parser.add_argument("step_file", nargs="?", help="Path to STEP file to load")
+    parser.add_argument("--output", "-o", type=str, help="Output directory for generated files")
+    args = parser.parse_args()
+
     print("="*60)
     print("SubsystemSim CAD Editor")
     print("="*60)
 
     editor = CADEditor()
 
-    if len(sys.argv) > 1:
-        step_file = sys.argv[1]
+    # Store output directory if provided
+    if args.output:
+        editor._output_dir = args.output
+        print(f"Output directory: {args.output}")
+
+    # Get STEP file path
+    if args.step_file:
+        step_file = args.step_file
     else:
         step_file = input("Enter STEP file path: ").strip()
         if not step_file:

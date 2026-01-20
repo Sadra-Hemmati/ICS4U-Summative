@@ -29,24 +29,30 @@ class DefinitionListWidget(QListWidget):
         # Connect double-click to edit signal
         self.itemDoubleClicked.connect(self._on_double_click)
 
-        # Style the list
+        # Style the list (dark theme matching SimpleSim)
         self.setAlternatingRowColors(True)
         self.setStyleSheet("""
             QListWidget {
-                border: 1px solid #ccc;
+                background-color: #2d2d2d;
+                border: 1px solid #4d4d4d;
                 border-radius: 4px;
                 padding: 2px;
+                color: #FFFFFF;
             }
             QListWidget::item {
                 padding: 4px 8px;
                 border-radius: 2px;
+                color: #FFFFFF;
             }
             QListWidget::item:hover {
-                background-color: #e3f2fd;
+                background-color: #3d3d3d;
             }
             QListWidget::item:selected {
-                background-color: #1976d2;
-                color: white;
+                background-color: #B22234;
+                color: #FFFFFF;
+            }
+            QListWidget::item:alternate {
+                background-color: #252525;
             }
         """)
 

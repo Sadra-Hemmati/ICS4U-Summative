@@ -61,7 +61,7 @@ class LinkDialog(QDialog):
 
         # Count label
         self.count_label = QLabel(f"Total: {len(self.selected_parts)} parts")
-        self.count_label.setStyleSheet("color: #666;")
+        self.count_label.setStyleSheet("color: #B0B0B0;")
         parts_layout.addWidget(self.count_label)
 
         # Add/Remove buttons
@@ -94,7 +94,7 @@ class LinkDialog(QDialog):
         self.auto_mass = self._calculate_auto_mass()
         auto_mass_text = f"{self.auto_mass:.4f} kg (from volume × {DEFAULT_DENSITY} kg/m³)"
         self.auto_mass_label = QLabel(auto_mass_text)
-        self.auto_mass_label.setStyleSheet("color: #666;")
+        self.auto_mass_label.setStyleSheet("color: #B0B0B0;")
         props_layout.addRow("Calculated Mass:", self.auto_mass_label)
 
         # Mass override
@@ -119,7 +119,7 @@ class LinkDialog(QDialog):
         # Center of mass info (read-only, auto-calculated)
         com = self._calculate_center_of_mass()
         self.com_label = QLabel(f"Center of mass: ({com[0]:.3f}, {com[1]:.3f}, {com[2]:.3f}) m")
-        self.com_label.setStyleSheet("color: #666; font-size: 11px;")
+        self.com_label.setStyleSheet("color: #B0B0B0; font-size: 11px;")
         layout.addWidget(self.com_label)
 
         # Button box

@@ -154,14 +154,14 @@ class JointDialog(QDialog):
 
         # Hint label
         self.limits_hint = QLabel("For revolute: radians. For prismatic: meters.")
-        self.limits_hint.setStyleSheet("color: #666; font-size: 11px;")
+        self.limits_hint.setStyleSheet("color: #B0B0B0; font-size: 11px;")
         limits_layout.addRow("", self.limits_hint)
 
         layout.addWidget(self.limits_group)
 
         # Origin info (auto-calculated)
         origin_label = QLabel("Origin will be calculated automatically from link geometry.")
-        origin_label.setStyleSheet("color: #666; font-size: 11px;")
+        origin_label.setStyleSheet("color: #B0B0B0; font-size: 11px;")
         layout.addWidget(origin_label)
 
         # Button box
