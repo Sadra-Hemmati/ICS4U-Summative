@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 from .base_screen import BaseScreen
 from simplesim.theming import Colors
+from simplesim.widgets import RoundedFrame
 
 if TYPE_CHECKING:
     from simplesim.app import SimpleSimApp
@@ -146,12 +147,13 @@ class ProjectOverviewScreen(BaseScreen):
         elif status_key == "robot":
             has_item = project.has_robot_code
 
-        # Card frame
-        card = tk.Frame(
+        # Card frame with rounded corners
+        card = RoundedFrame(
             parent,
             bg=Colors.BG_SECONDARY,
-            cursor="hand2"
+            corner_radius=10
         )
+        card.configure(cursor="hand2")
 
         # Inner padding
         inner = tk.Frame(card, bg=Colors.BG_SECONDARY)
@@ -222,14 +224,20 @@ class ProjectOverviewScreen(BaseScreen):
 
     def _on_card_enter(self, card, inner):
         """Handle mouse enter on card."""
-        card.configure(bg=Colors.BG_TERTIARY)
+        if hasattr(card, 'set_hover'):
+            card.set_hover(True)
+        else:
+            card.configure(bg=Colors.BG_TERTIARY)
         inner.configure(bg=Colors.BG_TERTIARY)
         for child in inner.winfo_children():
             self._set_bg_recursive(child, Colors.BG_TERTIARY)
 
     def _on_card_leave(self, card, inner):
         """Handle mouse leave on card."""
-        card.configure(bg=Colors.BG_SECONDARY)
+        if hasattr(card, 'set_hover'):
+            card.set_hover(False)
+        else:
+            card.configure(bg=Colors.BG_SECONDARY)
         inner.configure(bg=Colors.BG_SECONDARY)
         for child in inner.winfo_children():
             self._set_bg_recursive(child, Colors.BG_SECONDARY)

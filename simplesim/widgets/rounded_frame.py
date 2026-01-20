@@ -1,19 +1,19 @@
 """
 Rounded frame widget for SimpleSim.
 
-Provides a frame with rounded corners using Canvas.
+Provides a frame with rounded corners using Canvas as background layer.
 """
 
 import tkinter as tk
 from simplesim.theming import Colors
 
 
-class RoundedFrame(tk.Canvas):
+class RoundedFrame(tk.Frame):
     """
     A frame with rounded corners.
 
-    Uses a Canvas to draw a rounded rectangle background,
-    with a frame placed on top for content.
+    Uses a Canvas placed behind as a background layer,
+    keeping the frame's normal layout behavior intact.
     """
 
     def __init__(self, parent, bg=None, corner_radius=12, **kwargs):
@@ -24,35 +24,42 @@ class RoundedFrame(tk.Canvas):
             parent: Parent widget
             bg: Background color (default: Colors.BG_SECONDARY)
             corner_radius: Radius of corners in pixels
-            **kwargs: Additional canvas options
+            **kwargs: Additional frame options
         """
         self._bg_color = bg or Colors.BG_SECONDARY
         self._corner_radius = corner_radius
         self._hover_color = None
+        self._parent_bg = Colors.BG_PRIMARY
 
-        # Remove bg from kwargs if present (we handle it ourselves)
+        # Get parent background if possible
+        try:
+            self._parent_bg = parent.cget('bg')
+        except (tk.TclError, AttributeError):
+            pass
+
+        # Remove bg from kwargs - we make the frame transparent
         kwargs.pop('bg', None)
         kwargs.pop('background', None)
 
-        super().__init__(
-            parent,
-            bg=Colors.BG_PRIMARY,
-            highlightthickness=0,
-            **kwargs
-        )
+        super().__init__(parent, bg=self._bg_color, **kwargs)
 
-        # Create inner frame for content
-        self.inner = tk.Frame(self, bg=self._bg_color)
+        # Create canvas for rounded background
+        self._bg_canvas = tk.Canvas(
+            self,
+            bg=self._parent_bg,
+            highlightthickness=0
+        )
+        # Place canvas to fill entire frame, behind content
+        self._bg_canvas.place(x=0, y=0, relwidth=1, relheight=1)
+        # Use tk.Misc.lower to lower the canvas widget (not canvas items)
+        tk.Misc.lower(self._bg_canvas)
 
         # Bind resize to redraw
         self.bind('<Configure>', self._on_resize)
 
-        # Draw initial background
-        self._draw_rounded_rect()
-
     def _draw_rounded_rect(self):
         """Draw the rounded rectangle background."""
-        self.delete('bg')
+        self._bg_canvas.delete('all')
 
         width = self.winfo_width()
         height = self.winfo_height()
@@ -60,54 +67,25 @@ class RoundedFrame(tk.Canvas):
         if width <= 1 or height <= 1:
             return
 
-        r = self._corner_radius
+        r = min(self._corner_radius, width // 2, height // 2)
         color = self._hover_color or self._bg_color
 
-        # Draw rounded rectangle using polygon with arcs
-        # This creates a smooth rounded rectangle
-        points = []
+        # Draw rounded rectangle using arcs and rectangles
+        # This is more reliable than polygon for clean corners
 
-        # Top-left corner
-        for i in range(r + 1):
-            x = r - r * (1 - (i / r) ** 2) ** 0.5
-            points.append((x, r - i))
+        # Four corner circles (as arcs)
+        self._bg_canvas.create_arc(0, 0, r * 2, r * 2, start=90, extent=90,
+                                    fill=color, outline=color)
+        self._bg_canvas.create_arc(width - r * 2, 0, width, r * 2, start=0, extent=90,
+                                    fill=color, outline=color)
+        self._bg_canvas.create_arc(0, height - r * 2, r * 2, height, start=180, extent=90,
+                                    fill=color, outline=color)
+        self._bg_canvas.create_arc(width - r * 2, height - r * 2, width, height, start=270, extent=90,
+                                    fill=color, outline=color)
 
-        # Top-right corner
-        for i in range(r + 1):
-            x = width - r + r * (1 - ((r - i) / r) ** 2) ** 0.5
-            points.append((x, i))
-
-        # Bottom-right corner
-        for i in range(r + 1):
-            x = width - r + r * (1 - (i / r) ** 2) ** 0.5
-            points.append((x, height - r + i))
-
-        # Bottom-left corner
-        for i in range(r + 1):
-            x = r - r * (1 - ((r - i) / r) ** 2) ** 0.5
-            points.append((x, height - i))
-
-        # Flatten points for create_polygon
-        flat_points = [coord for point in points for coord in point]
-
-        self.create_polygon(
-            flat_points,
-            fill=color,
-            outline=color,
-            smooth=True,
-            tags='bg'
-        )
-
-        # Place inner frame on top
-        self.create_window(
-            self._corner_radius // 2,
-            self._corner_radius // 2,
-            window=self.inner,
-            anchor='nw',
-            width=width - self._corner_radius,
-            height=height - self._corner_radius,
-            tags='content'
-        )
+        # Fill rectangles
+        self._bg_canvas.create_rectangle(r, 0, width - r, height, fill=color, outline=color)
+        self._bg_canvas.create_rectangle(0, r, width, height - r, fill=color, outline=color)
 
     def _on_resize(self, event):
         """Handle resize event."""
@@ -121,25 +99,15 @@ class RoundedFrame(tk.Canvas):
             self._hover_color = None
         self._draw_rounded_rect()
 
-        # Update inner frame background
+        # Update frame background for children
         new_bg = self._hover_color or self._bg_color
-        self.inner.configure(bg=new_bg)
-        self._update_children_bg(self.inner, new_bg)
-
-    def _update_children_bg(self, widget, color):
-        """Recursively update background color of children."""
-        for child in widget.winfo_children():
-            try:
-                child.configure(bg=color)
-            except tk.TclError:
-                pass
-            self._update_children_bg(child, color)
+        self.configure(bg=new_bg)
 
     def configure_bg(self, color):
         """Change the background color."""
         self._bg_color = color
         self._draw_rounded_rect()
-        self.inner.configure(bg=color)
+        self.configure(bg=color)
 
 
 class RoundedButton(tk.Canvas):

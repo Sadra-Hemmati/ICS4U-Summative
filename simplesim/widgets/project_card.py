@@ -10,12 +10,13 @@ from typing import Callable, TYPE_CHECKING
 from datetime import datetime
 
 from simplesim.theming import Colors
+from simplesim.widgets.rounded_frame import RoundedFrame
 
 if TYPE_CHECKING:
     from simplesim.project import Project
 
 
-class ProjectCard(tk.Frame):
+class ProjectCard(RoundedFrame):
     """
     A card widget displaying project information.
 
@@ -38,8 +39,9 @@ class ProjectCard(tk.Frame):
         super().__init__(
             parent,
             bg=Colors.BG_SECONDARY,
-            cursor="hand2"
+            corner_radius=10
         )
+        self.configure(cursor="hand2")
 
         self.project = project
         self.on_click = on_click
@@ -182,25 +184,30 @@ class ProjectCard(tk.Frame):
 
     def _on_enter(self, event):
         """Handle mouse enter - show hover effect."""
-        self.configure(bg=Colors.BG_TERTIARY)
-        self._inner.configure(bg=Colors.BG_TERTIARY)
-        for label in self._labels:
-            if hasattr(label, 'configure'):
-                try:
-                    label.configure(bg=Colors.BG_TERTIARY)
-                except tk.TclError:
-                    pass
+        self.set_hover(True)
+        self._set_all_backgrounds(Colors.BG_TERTIARY)
 
     def _on_leave(self, event):
         """Handle mouse leave - remove hover effect."""
-        self.configure(bg=Colors.BG_SECONDARY)
-        self._inner.configure(bg=Colors.BG_SECONDARY)
-        for label in self._labels:
-            if hasattr(label, 'configure'):
-                try:
-                    label.configure(bg=Colors.BG_SECONDARY)
-                except tk.TclError:
-                    pass
+        self.set_hover(False)
+        self._set_all_backgrounds(Colors.BG_SECONDARY)
+
+    def _set_all_backgrounds(self, color):
+        """Recursively set background color on all children."""
+        for child in self.winfo_children():
+            # Skip the background canvas
+            if child == self._bg_canvas:
+                continue
+            self._set_bg_recursive(child, color)
+
+    def _set_bg_recursive(self, widget, color):
+        """Recursively set background color."""
+        try:
+            widget.configure(bg=color)
+        except tk.TclError:
+            pass
+        for child in widget.winfo_children():
+            self._set_bg_recursive(child, color)
 
     def _on_click(self, event):
         """Handle click - trigger callback."""

@@ -87,6 +87,27 @@ def configure_styles():
         foreground=Colors.TEXT_PRIMARY,
         font=("Segoe UI", 12, "bold")
     )
+    # Header on secondary background
+    style.configure(
+        "CardHeader.TLabel",
+        background=Colors.BG_SECONDARY,
+        foreground=Colors.TEXT_PRIMARY,
+        font=("Segoe UI", 18, "bold")
+    )
+    # Muted text on secondary background
+    style.configure(
+        "CardMuted.TLabel",
+        background=Colors.BG_SECONDARY,
+        foreground=Colors.TEXT_MUTED,
+        font=("Segoe UI", 10)
+    )
+    # Subheader on secondary background
+    style.configure(
+        "CardSubheader.TLabel",
+        background=Colors.BG_SECONDARY,
+        foreground=Colors.TEXT_SECONDARY,
+        font=("Segoe UI", 12)
+    )
     style.configure(
         "Success.TLabel",
         background=Colors.BG_PRIMARY,

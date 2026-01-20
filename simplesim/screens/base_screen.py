@@ -167,7 +167,7 @@ class BaseScreen(ABC):
         title_label = ttk.Label(
             inner,
             text=title,
-            style="Header.TLabel"
+            style="CardHeader.TLabel"
         )
         if show_back:
             title_label.pack(side=tk.LEFT, padx=(20, 0))

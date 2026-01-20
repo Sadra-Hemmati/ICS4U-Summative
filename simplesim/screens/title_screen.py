@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from .base_screen import BaseScreen
 from simplesim.theming import Colors
-from simplesim.widgets import GearAnimation
+from simplesim.widgets import GearAnimation, RoundedFrame
 
 if TYPE_CHECKING:
     from simplesim.app import SimpleSimApp
@@ -46,24 +46,27 @@ class TitleScreen(BaseScreen):
         center_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
         # Add semi-transparent background to center content
-        # Using a frame with padding for the "card" effect
-        content_frame = tk.Frame(
+        # Using a rounded frame with padding for the "card" effect
+        content_frame = RoundedFrame(
             center_frame,
             bg=Colors.BG_SECONDARY,
-            padx=60,
-            pady=40
+            corner_radius=16
         )
         content_frame.pack()
 
+        # Inner padding frame (RoundedFrame doesn't support padx/pady directly)
+        inner_padding = tk.Frame(content_frame, bg=Colors.BG_SECONDARY)
+        inner_padding.pack(padx=60, pady=40)
+
         # Load and display logo
-        self._load_logo(content_frame)
+        self._load_logo(inner_padding)
 
         # Spacer
-        tk.Frame(content_frame, bg=Colors.BG_SECONDARY, height=30).pack()
+        tk.Frame(inner_padding, bg=Colors.BG_SECONDARY, height=30).pack()
 
         # Start button
         start_btn = ttk.Button(
-            content_frame,
+            inner_padding,
             text="Start",
             style="LargeAccent.TButton",
             command=self._on_start

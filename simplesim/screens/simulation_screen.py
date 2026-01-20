@@ -92,7 +92,7 @@ class SimulationScreen(BaseScreen):
         title_label = ttk.Label(
             nav_inner,
             text=f"Simulation - {project.name}",
-            style="Header.TLabel"
+            style="CardHeader.TLabel"
         )
         title_label.pack(side=tk.LEFT, padx=(20, 0))
 
@@ -100,7 +100,7 @@ class SimulationScreen(BaseScreen):
         self._status_label = ttk.Label(
             nav_inner,
             text="Starting...",
-            style="Muted.TLabel"
+            style="CardMuted.TLabel"
         )
         self._status_label.pack(side=tk.RIGHT)
 
