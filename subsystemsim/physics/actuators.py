@@ -13,11 +13,35 @@ from enum import Enum
 # Motor specifications database
 # Source: FRC motor spec sheets (free speed, stall torque, stall current)
 MOTOR_SPECS = {
+    'krakenx60': {
+        'free_speed_rpm': 6000,
+        'stall_torque_nm': 7.09,
+        'stall_current_a': 366,
+        'free_current_a': 2.0
+    },
     'neo': {
         'free_speed_rpm': 5676,
         'stall_torque_nm': 2.6,
         'stall_current_a': 105,
         'free_current_a': 1.8
+    },
+    'neo550': {
+        'free_speed_rpm': 11000,
+        'stall_torque_nm': 0.97,
+        'stall_current_a': 100,
+        'free_current_a': 1.4
+    },
+    'neovortex': {
+        'free_speed_rpm': 6784,
+        'stall_torque_nm': 3.6,
+        'stall_current_a': 211,
+        'free_current_a': 1.2
+    },
+    'falcon500': {
+        'free_speed_rpm': 6380,
+        'stall_torque_nm': 4.69,
+        'stall_current_a': 257,
+        'free_current_a': 1.5
     },
     'cim': {
         'free_speed_rpm': 5330,
@@ -36,18 +60,6 @@ MOTOR_SPECS = {
         'stall_torque_nm': 0.43,
         'stall_current_a': 53,
         'free_current_a': 1.8
-    },
-    'falcon500': {
-        'free_speed_rpm': 6380,
-        'stall_torque_nm': 4.69,
-        'stall_current_a': 257,
-        'free_current_a': 1.5
-    },
-    'neo550': {
-        'free_speed_rpm': 11000,
-        'stall_torque_nm': 0.97,
-        'stall_current_a': 100,
-        'free_current_a': 1.4
     },
     'venom': {
         'free_speed_rpm': 6000,

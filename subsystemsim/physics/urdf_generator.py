@@ -14,18 +14,23 @@ from ..core.model import SubsystemModel, Link, Joint, JointType
 
 
 def generate_urdf(model: SubsystemModel, output_dir: str = None,
-                  joint_damping: float = 0.5, joint_friction: float = 0.0) -> str:
+                  joint_damping: float = 0.5, joint_friction: float = 0.0,
+                  prismatic_damping: float = 10.0) -> str:
     """
     Generate URDF file from SubsystemModel.
 
     Args:
         model: The subsystem model to convert
         output_dir: Directory to save URDF (default: temp directory)
-        joint_damping: Damping coefficient for all joints (Nm/(rad/s))
+        joint_damping: Damping coefficient for revolute joints (Nm/(rad/s))
                        Higher values = more resistance to motion = more realistic
                        Default 0.5 provides good balance for FRC mechanisms
         joint_friction: Coulomb friction coefficient for joints
                         Default 0.0 for smooth motor-driven joints
+        prismatic_damping: Damping coefficient for prismatic joints (N/(m/s))
+                           Provides velocity-proportional resistance.
+                           Default 10.0 allows ~1.2 m/s terminal velocity under gravity
+                           while still providing stability during motor control.
 
     Returns:
         Path to generated URDF file
@@ -54,9 +59,14 @@ def generate_urdf(model: SubsystemModel, output_dir: str = None,
     for link in model.links:
         robot.append(_create_link_element(link, urdf_path))
 
-    # Add all joints with damping for realistic motor behavior
+    # Add all joints with appropriate damping for joint type
     for joint in model.joints:
-        robot.append(_create_joint_element(joint, damping=joint_damping, friction=joint_friction))
+        # Use higher damping for prismatic joints to prevent oscillation
+        if joint.joint_type == JointType.PRISMATIC:
+            damping = prismatic_damping
+        else:
+            damping = joint_damping
+        robot.append(_create_joint_element(joint, damping=damping, friction=joint_friction))
 
     # Convert to pretty XML string
     xml_string = _prettify_xml(robot)
@@ -64,7 +74,8 @@ def generate_urdf(model: SubsystemModel, output_dir: str = None,
         f.write(xml_string)
 
     print(f"Generated URDF: {urdf_path}")
-    print(f"  Joint damping: {joint_damping} Nm/(rad/s)")
+    print(f"  Revolute joint damping: {joint_damping} Nm/(rad/s)")
+    print(f"  Prismatic joint damping: {prismatic_damping} N/(m/s)")
     return str(urdf_path.absolute())
 
 

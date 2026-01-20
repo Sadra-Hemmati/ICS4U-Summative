@@ -1,20 +1,20 @@
 <?xml version="1.0" ?>
 <robot name="SimpleSim_Example">
-  <link name="Elevator_Base">
+  <link name="Base">
     <visual>
       <geometry>
-        <mesh filename="../generated_projects/SimpleSim_Example/meshes/Elevator_Base.stl"/>
+        <mesh filename="../generated_projects/SimpleSim_Example/meshes/Base.stl"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="../generated_projects/SimpleSim_Example/meshes/Elevator_Base.stl"/>
+        <mesh filename="../generated_projects/SimpleSim_Example/meshes/Base.stl"/>
       </geometry>
     </collision>
     <inertial>
-      <origin xyz="8.627819642385304e-05 0.008932690907972227 0.7470979155880756" rpy="0 0 0"/>
-      <mass value="4.552363181200548"/>
-      <inertia ixx="0.04552363181200548" ixy="0.0" ixz="0.0" iyy="0.04552363181200548" iyz="0.0" izz="0.04552363181200548"/>
+      <origin xyz="-0.007966152214825167 -0.008923170820092372 0.5829185338730535" rpy="0 0 0"/>
+      <mass value="6.651333708331838"/>
+      <inertia ixx="0.06651333708331839" ixy="0.0" ixz="0.0" iyy="0.06651333708331839" iyz="0.0" izz="0.06651333708331839"/>
     </inertial>
   </link>
   <link name="Carriage">
@@ -29,17 +29,17 @@
       </geometry>
     </collision>
     <inertial>
-      <origin xyz="-0.01975106726280527 -0.028267282854895083 0.07868671260021018" rpy="0 0 0"/>
-      <mass value="1.9031493208779748"/>
-      <inertia ixx="0.01903149320877975" ixy="0.0" ixz="0.0" iyy="0.01903149320877975" iyz="0.0" izz="0.01903149320877975"/>
+      <origin xyz="4.968162423967752e-13 9.098708269687423e-06 0.11394265830629016" rpy="0 0 0"/>
+      <mass value="1.255656511801627"/>
+      <inertia ixx="0.012556565118016269" ixy="0.0" ixz="0.0" iyy="0.012556565118016269" iyz="0.0" izz="0.012556565118016269"/>
     </inertial>
   </link>
-  <joint name="Elevator_Joint" type="prismatic">
-    <parent link="Elevator_Base"/>
+  <joint name="Elevator" type="prismatic">
+    <parent link="Base"/>
     <child link="Carriage"/>
-    <origin xyz="-0.00983239453319071 -0.009667295973461429 0.4128923140941429" rpy="0 0 0"/>
+    <origin xyz="-0.004067949596099795 -0.0038826359001646648 0.347052019548392" rpy="0 0 0"/>
     <axis xyz="0.0 0.0 1.0"/>
-    <limit lower="0.0" upper="4.0" velocity="10.0" effort="100.0"/>
-    <dynamics damping="0.5" friction="0.0"/>
+    <limit lower="-0.3" upper="0.8" velocity="10.0" effort="150.0"/>
+    <dynamics damping="10.0" friction="0.0"/>
   </joint>
 </robot>

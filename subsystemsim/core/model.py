@@ -22,12 +22,14 @@ class JointType(Enum):
 
 class MotorType(Enum):
     """FRC motor types."""
+    KRAKEN_X60 = "krakenx60"
     NEO = "neo"
+    NEO_550 = "neo550"
+    NEO_VORTEX = "neovortex"
+    FALCON_500 = "falcon500"
     CIM = "cim"
     MINI_CIM = "minicim"
     BAG = "bag"
-    FALCON_500 = "falcon500"
-    NEO_550 = "neo550"
     VENOM = "venom"
 
 
@@ -111,6 +113,8 @@ class Motor:
         controller_type: "pwm" or "can" - type of motor controller
         hal_port: PWM port or CAN ID used in robot code
         inverted: Whether motor direction is inverted
+        drum_radius: For prismatic joints, radius of the drum/pulley/sprocket (meters)
+                     Used to convert motor torque to linear force. Default 0.019m (~1.5" dia)
     """
     name: str
     motor_type: MotorType
@@ -119,6 +123,7 @@ class Motor:
     controller_type: str = "pwm"  # "pwm" or "can"
     hal_port: int = 0
     inverted: bool = False
+    drum_radius: float = 0.019  # ~1.5" diameter, typical for FRC mechanisms
 
     def __post_init__(self):
         """Convert string motor_type to enum if needed."""

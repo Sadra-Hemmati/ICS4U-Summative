@@ -781,7 +781,8 @@ class SubsystemSimApp:
             self.sim_log.insert(tk.END, "\nStarting WebSocket bridge...\n\n")
 
             cmd = [
-                sys.executable, "-m", "subsystemsim.hal_bridge.websocket_bridge",
+                sys.executable, "-u",  # Unbuffered output - ensures prints show immediately
+                "-m", "subsystemsim.hal_bridge.websocket_bridge",
                 "--config", str(self.config_file_path)
             ]
 

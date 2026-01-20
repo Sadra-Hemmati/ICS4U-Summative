@@ -97,7 +97,8 @@ def load_config(config_path: Union[str, Path]) -> SubsystemModel:
             gear_ratio=motor_data.get('gear_ratio', 1.0),
             controller_type=motor_data.get('controller_type', 'pwm'),
             hal_port=motor_data.get('hal_port', 0),
-            inverted=motor_data.get('inverted', False)
+            inverted=motor_data.get('inverted', False),
+            drum_radius=motor_data.get('drum_radius', 0.019)  # Default ~1.5" diameter
         )
         motors.append(motor)
 

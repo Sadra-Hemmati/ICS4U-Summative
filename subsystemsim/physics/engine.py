@@ -26,13 +26,23 @@ class PhysicsEngine:
         # Connect to PyBullet
         if gui:
             self.physics_client = p.connect(p.GUI)
-            # Configure camera for better viewing
+            # Configure camera for better viewing (zoomed out for larger mechanisms)
             p.resetDebugVisualizerCamera(
                 cameraDistance=1.5,
-                cameraYaw=50,
-                cameraPitch=-35,
-                cameraTargetPosition=[0, 0, 0.5]
+                cameraYaw=45,
+                cameraPitch=-30,
+                cameraTargetPosition=[0, 0, 0.75]
             )
+            # Disable unnecessary debug visualizer features for performance
+            # These features can accumulate data and cause progressive lag
+            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)  # Disable side panel GUI
+            p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)  # Disable shadows
+            p.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME, 0)  # Disable wireframe
+            p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)  # Keep rendering on
+            p.configureDebugVisualizer(p.COV_ENABLE_TINY_RENDERER, 0)  # Disable CPU renderer
+            p.configureDebugVisualizer(p.COV_ENABLE_RGB_BUFFER_PREVIEW, 0)  # Disable RGB preview
+            p.configureDebugVisualizer(p.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)  # Disable depth preview
+            p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)  # Disable segmentation
         else:
             self.physics_client = p.connect(p.DIRECT)
 
@@ -197,34 +207,59 @@ class PhysicsEngine:
 
     def apply_joint_torque(self, body_name: str, joint_name: str, torque: float):
         """
-        Apply torque to a joint (force control).
+        Apply torque/force to a joint.
+
+        For revolute joints: applies torque in Nm
+        For prismatic joints: applies force in N
 
         Args:
             body_name: Name of the body
             joint_name: Name of the joint
-            torque: Torque in Nm (or force in N for prismatic joints)
+            torque: Torque in Nm (revolute) or force in N (prismatic)
         """
         body_id = self.bodies[body_name]
         joint_index = self.joint_indices[joint_name]
 
-        # Get joint info to determine which link this joint drives
-        joint_info = p.getJointInfo(body_id, joint_index)
-        link_index = joint_index  # In PyBullet, link index matches joint index for driven links
-        
-        # Get the joint axis
-        axis = joint_info[13]  # Joint axis from joint info
-        
-        # Calculate torque vector in world frame
-        # Torque = magnitude * axis direction
-        torque_vector = [axis[0] * torque, axis[1] * torque, axis[2] * torque]
+        # Use cached joint info for performance (joint properties don't change)
+        cache_key = (body_id, joint_index)
+        if not hasattr(self, '_joint_cache'):
+            self._joint_cache = {}
 
-        # Apply external torque to the link driven by this joint
-        p.applyExternalTorque(
-            objectUniqueId=body_id,
-            linkIndex=link_index,
-            torqueObj=torque_vector,
-            flags=p.WORLD_FRAME
-        )
+        if cache_key not in self._joint_cache:
+            joint_info = p.getJointInfo(body_id, joint_index)
+            self._joint_cache[cache_key] = {
+                'type': joint_info[2],  # 0 = revolute, 1 = prismatic
+                'axis': joint_info[13],
+                'link_index': joint_index
+            }
+
+        cached = self._joint_cache[cache_key]
+        joint_type = cached['type']
+        axis = cached['axis']
+        link_index = cached['link_index']
+
+        if joint_type == 1:  # PRISMATIC joint - apply force
+            # For prismatic joints, apply force along the joint axis
+            force_vector = [axis[0] * torque, axis[1] * torque, axis[2] * torque]
+
+            # Apply force at link center (LINK_FRAME avoids getLinkState call)
+            p.applyExternalForce(
+                objectUniqueId=body_id,
+                linkIndex=link_index,
+                forceObj=force_vector,
+                posObj=[0, 0, 0],
+                flags=p.LINK_FRAME
+            )
+        else:  # REVOLUTE joint - apply torque
+            # Calculate torque vector in world frame
+            torque_vector = [axis[0] * torque, axis[1] * torque, axis[2] * torque]
+
+            p.applyExternalTorque(
+                objectUniqueId=body_id,
+                linkIndex=link_index,
+                torqueObj=torque_vector,
+                flags=p.WORLD_FRAME
+            )
 
     def step(self, num_steps: int = 1):
         """

@@ -181,6 +181,23 @@ class CADEditor:
     Visual CAD editor for defining FRC subsystem structure from STEP files.
     """
 
+    # Unit conversion factors to meters
+    UNIT_SCALES = {
+        'meter': 1.0,
+        'metre': 1.0,
+        'm': 1.0,
+        'millimeter': 0.001,
+        'millimetre': 0.001,
+        'mm': 0.001,
+        'centimeter': 0.01,
+        'centimetre': 0.01,
+        'cm': 0.01,
+        'inch': 0.0254,
+        'in': 0.0254,
+        'foot': 0.3048,
+        'ft': 0.3048,
+    }
+
     def __init__(self):
         self.subsystem = SubsystemDefinition()
         self.display = None
@@ -190,6 +207,75 @@ class CADEditor:
         self._color_index = 0  # For assigning muted colors
         self._color_map: Dict[Tuple[float, float, float], int] = {}  # Map original colors to palette index
         self._canvas = None  # Qt canvas for mouse events
+        self._unit_scale = 0.001  # Default: assume millimeters (most common in CAD)
+        self._detected_unit = "millimeter"  # String name of detected unit
+
+    def _detect_step_units(self, file_path: str) -> Tuple[str, float]:
+        """
+        Detect the length unit used in a STEP file by parsing its contents.
+
+        STEP files define units using SI_UNIT entities. Common patterns:
+        - SI_UNIT($,.LENGTH_UNIT.) with prefix like MILLI, CENTI
+        - CONVERSION_BASED_UNIT for inches, feet
+
+        Args:
+            file_path: Path to STEP file
+
+        Returns:
+            Tuple of (unit_name, scale_to_meters)
+        """
+        import re
+
+        try:
+            with open(file_path, 'r', errors='ignore') as f:
+                content = f.read(50000)  # Read first 50KB (header + start of data)
+
+            # Look for SI_UNIT with prefix (most common)
+            # Pattern: SI_UNIT(.MILLI.,.LENGTH_UNIT.) or similar
+            si_pattern = r"SI_UNIT\s*\(\s*\.\s*(\w+)\s*\.\s*,\s*\.LENGTH_UNIT\.\s*\)"
+            si_match = re.search(si_pattern, content, re.IGNORECASE)
+
+            if si_match:
+                prefix = si_match.group(1).upper()
+                if prefix == 'MILLI':
+                    return ('millimeter', 0.001)
+                elif prefix == 'CENTI':
+                    return ('centimeter', 0.01)
+                elif prefix == 'MICRO':
+                    return ('micrometer', 0.000001)
+                elif prefix == 'KILO':
+                    return ('kilometer', 1000.0)
+
+            # Look for plain SI_UNIT without prefix (meters)
+            # Pattern: SI_UNIT($,.LENGTH_UNIT.) where $ means no prefix
+            plain_si = r"SI_UNIT\s*\(\s*\$\s*,\s*\.LENGTH_UNIT\.\s*\)"
+            if re.search(plain_si, content, re.IGNORECASE):
+                return ('meter', 1.0)
+
+            # Look for CONVERSION_BASED_UNIT (inches, feet)
+            # Pattern: 'INCH' or 'FOOT' in context of length unit
+            if re.search(r"'INCH'", content, re.IGNORECASE):
+                return ('inch', 0.0254)
+            if re.search(r"'FOOT'", content, re.IGNORECASE):
+                return ('foot', 0.3048)
+
+            # Look for length_measure with specific values that hint at units
+            # If we find (LENGTH_UNIT()LENGTH_MEASURE(25.4)) it's likely mm
+            measure_pattern = r"LENGTH_MEASURE\s*\(\s*([\d.]+)\s*\)"
+            measure_match = re.search(measure_pattern, content)
+            if measure_match:
+                value = float(measure_match.group(1))
+                # 25.4 is the conversion factor for inch to mm
+                if abs(value - 25.4) < 0.01:
+                    return ('millimeter', 0.001)
+
+            # Default: assume millimeters (most common in mechanical CAD)
+            print("[INFO] Could not detect STEP units, assuming millimeters")
+            return ('millimeter', 0.001)
+
+        except Exception as e:
+            print(f"[WARNING] Error detecting STEP units: {e}, assuming millimeters")
+            return ('millimeter', 0.001)
 
     def load_step_file(self, file_path: str) -> bool:
         """
@@ -208,6 +294,10 @@ class CADEditor:
             return False
 
         print(f"Loading STEP file: {file_path}")
+
+        # Detect units from STEP file
+        self._detected_unit, self._unit_scale = self._detect_step_units(file_path)
+        print(f"[INFO] Detected units: {self._detected_unit} (scale to meters: {self._unit_scale})")
 
         # NOTE: XDE reader disabled - causes silent crashes on some systems
         # Using basic reader with distinct color palette instead
@@ -434,22 +524,24 @@ class CADEditor:
         props = GProp.GProp_GProps()
         BRepGProp.brepgprop.VolumeProperties(shape, props)
 
-        volume = props.Mass()  # In STEP units (usually mm^3)
-        # Convert mm^3 to m^3 (STEP files are often in mm)
-        volume_m3 = volume * 1e-9
+        volume = props.Mass()  # In STEP file units (cubed)
+        # Convert to m^3 using detected unit scale
+        # Volume scales with the cube of the linear scale
+        scale = self._unit_scale
+        volume_m3 = volume * (scale ** 3)
 
         com = props.CentreOfMass()
-        # Convert mm to m
-        center_of_mass = (com.X() * 0.001, com.Y() * 0.001, com.Z() * 0.001)
+        # Convert to meters using detected unit scale
+        center_of_mass = (com.X() * scale, com.Y() * scale, com.Z() * scale)
 
         # Calculate bounding box using modern API
         bbox = Bnd.Bnd_Box()
         BRepBndLib.brepbndlib.Add(shape, bbox, True)
         xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
-        # Convert to meters
+        # Convert to meters using detected unit scale
         bounding_box = (
-            (xmin * 0.001, ymin * 0.001, zmin * 0.001),
-            (xmax * 0.001, ymax * 0.001, zmax * 0.001)
+            (xmin * scale, ymin * scale, zmin * scale),
+            (xmax * scale, ymax * scale, zmax * scale)
         )
 
         # Calculate mass from volume and density
@@ -2124,17 +2216,19 @@ class CADEditor:
             return
 
         print("\nMotor types:")
-        print("  neo      - REV NEO (brushless)")
-        print("  neo550   - REV NEO 550 (brushless)")
-        print("  falcon500- CTRE Falcon 500 (brushless)")
-        print("  cim      - CIM motor (brushed)")
-        print("  minicim  - Mini CIM (brushed)")
-        print("  bag      - BAG motor (brushed)")
-        print("  venom    - Playing With Fusion Venom")
-        motor_type = input("Motor type [neo]: ").strip().lower() or "neo"
-        if motor_type not in ["neo", "neo550", "falcon500", "cim", "minicim", "bag", "venom"]:
-            print(f"[WARNING] Unknown motor type '{motor_type}', using neo")
-            motor_type = "neo"
+        print("  krakenx60 - WCP Kraken X60 (brushless)")
+        print("  neo       - REV NEO (brushless)")
+        print("  neo550    - REV NEO 550 (brushless)")
+        print("  neovortex - REV NEO Vortex (brushless)")
+        print("  falcon500 - CTRE Falcon 500 (brushless)")
+        print("  cim       - CIM motor (brushed)")
+        print("  minicim   - Mini CIM (brushed)")
+        print("  bag       - BAG motor (brushed)")
+        print("  venom     - Playing With Fusion Venom")
+        motor_type = input("Motor type [krakenx60]: ").strip().lower() or "krakenx60"
+        if motor_type not in ["krakenx60", "neo", "neo550", "neovortex", "falcon500", "cim", "minicim", "bag", "venom"]:
+            print(f"[WARNING] Unknown motor type '{motor_type}', using krakenx60")
+            motor_type = "krakenx60"
 
         try:
             gear_ratio = float(input("Gear ratio (e.g., 60 for 60:1) [1.0]: ").strip() or "1.0")
@@ -2349,11 +2443,12 @@ class CADEditor:
                         # Get midpoint of closest points
                         pt1 = dist_calc.PointOnShape1(1)
                         pt2 = dist_calc.PointOnShape2(1)
-                        # Convert to meters and average
+                        # Convert to meters using detected unit scale
+                        scale = self._unit_scale
                         best_point = (
-                            (pt1.X() + pt2.X()) * 0.5 * 0.001,
-                            (pt1.Y() + pt2.Y()) * 0.5 * 0.001,
-                            (pt1.Z() + pt2.Z()) * 0.5 * 0.001
+                            (pt1.X() + pt2.X()) * 0.5 * scale,
+                            (pt1.Y() + pt2.Y()) * 0.5 * scale,
+                            (pt1.Z() + pt2.Z()) * 0.5 * scale
                         )
 
         return best_point
@@ -2512,10 +2607,11 @@ class CADEditor:
         print("="*60)
 
     def _export_link_mesh(self, link: LinkDefinition, output_dir: Path) -> Optional[Path]:
-        """Export a link's parts as a single STL/OBJ mesh."""
-        from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Copy
+        """Export a link's parts as a single STL/OBJ mesh, scaled to meters."""
+        from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Copy, BRepBuilderAPI_Transform
         from OCC.Core.TopoDS import TopoDS_Compound
         from OCC.Core.BRep import BRep_Builder
+        from OCC.Core.gp import gp_Trsf, gp_Pnt
 
         # Combine all parts into one compound
         builder = BRep_Builder()
@@ -2528,8 +2624,16 @@ class CADEditor:
                 copier = BRepBuilderAPI_Copy(self.subsystem.parts[part_name].shape)
                 builder.Add(compound, copier.Shape())
 
-        # Mesh the compound
-        mesh = BRepMesh_IncrementalMesh(compound, 0.1)  # 0.1mm deviation
+        # Apply unit scaling to convert to meters
+        if self._unit_scale != 1.0:
+            scale_transform = gp_Trsf()
+            scale_transform.SetScale(gp_Pnt(0, 0, 0), self._unit_scale)
+            scaler = BRepBuilderAPI_Transform(compound, scale_transform, True)
+            compound = scaler.Shape()
+
+        # Mesh the compound (use scaled tolerance)
+        mesh_tolerance = 0.0001  # 0.1mm in meters
+        mesh = BRepMesh_IncrementalMesh(compound, mesh_tolerance)
         mesh.Perform()
 
         # Export as STL (OBJ not directly supported, but we can convert later or use STL)
@@ -2540,17 +2644,18 @@ class CADEditor:
         success = writer.Write(compound, str(output_file))
 
         if success:
-            print(f"  [OK] Exported: {output_file.name}")
+            print(f"  [OK] Exported: {output_file.name} (scaled to meters)")
             return output_file
         else:
             print(f"  [ERROR] Failed to export: {link.name}")
             return None
 
     def _export_static_mesh(self, part_names: List[str], output_dir: Path) -> Optional[Path]:
-        """Export undefined parts as static geometry."""
-        from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Copy
+        """Export undefined parts as static geometry, scaled to meters."""
+        from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Copy, BRepBuilderAPI_Transform
         from OCC.Core.TopoDS import TopoDS_Compound
         from OCC.Core.BRep import BRep_Builder
+        from OCC.Core.gp import gp_Trsf, gp_Pnt
 
         builder = BRep_Builder()
         compound = TopoDS_Compound()
@@ -2561,7 +2666,16 @@ class CADEditor:
                 copier = BRepBuilderAPI_Copy(self.subsystem.parts[part_name].shape)
                 builder.Add(compound, copier.Shape())
 
-        mesh = BRepMesh_IncrementalMesh(compound, 0.1)
+        # Apply unit scaling to convert to meters
+        if self._unit_scale != 1.0:
+            scale_transform = gp_Trsf()
+            scale_transform.SetScale(gp_Pnt(0, 0, 0), self._unit_scale)
+            scaler = BRepBuilderAPI_Transform(compound, scale_transform, True)
+            compound = scaler.Shape()
+
+        # Mesh the compound (use scaled tolerance)
+        mesh_tolerance = 0.0001  # 0.1mm in meters
+        mesh = BRepMesh_IncrementalMesh(compound, mesh_tolerance)
         mesh.Perform()
 
         output_file = output_dir / "static_geometry.stl"
@@ -2571,7 +2685,7 @@ class CADEditor:
         success = writer.Write(compound, str(output_file))
 
         if success:
-            print(f"  [OK] Exported static geometry: {output_file.name}")
+            print(f"  [OK] Exported static geometry: {output_file.name} (scaled to meters)")
             return output_file
         else:
             print(f"  [ERROR] Failed to export static geometry")

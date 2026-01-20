@@ -2,65 +2,65 @@
   "name": "SimpleSim_Example",
   "links": [
     {
-      "name": "Elevator_Base",
-      "mesh": "meshes/Elevator_Base.stl",
-      "mass": 4.552363181200548,
+      "name": "Base",
+      "mesh": "meshes/Base.stl",
+      "mass": 6.651333708331838,
       "center_of_mass": [
-        8.627819642385304e-05,
-        0.008932690907972227,
-        0.7470979155880756
+        -0.007966152214825167,
+        -0.008923170820092372,
+        0.5829185338730535
       ],
       "inertia": [
         [
-          0.04552363181200548,
+          0.06651333708331839,
           0.0,
           0.0
         ],
         [
           0.0,
-          0.04552363181200548,
+          0.06651333708331839,
           0.0
         ],
         [
           0.0,
           0.0,
-          0.04552363181200548
+          0.06651333708331839
         ]
       ]
     },
     {
       "name": "Carriage",
       "mesh": "meshes/Carriage.stl",
-      "mass": 1.9031493208779748,
+      "mass": 1.255656511801627,
       "center_of_mass": [
-        -0.01975106726280527,
-        -0.028267282854895083,
-        0.07868671260021018
+        4.968162423967752e-13,
+        9.098708269687423e-06,
+        0.11394265830629016
       ],
       "inertia": [
         [
-          0.01903149320877975,
+          0.012556565118016269,
           0.0,
           0.0
         ],
         [
           0.0,
-          0.01903149320877975,
+          0.012556565118016269,
           0.0
         ],
         [
           0.0,
           0.0,
-          0.01903149320877975
+          0.012556565118016269
         ]
       ]
     }
   ],
   "joints": [
     {
-      "name": "Elevator_Joint",
+      "name": "Elevator",
       "type": "prismatic",
-      "parent": "Elevator_Base",
+      "parent": "Base",
       "child": "Carriage",
       "axis": [
         0.0,
@@ -68,36 +68,36 @@
         1.0
       ],
       "origin": [
-        -0.00983239453319071,
-        -0.009667295973461429,
-        0.4128923140941429
+        -0.004067949596099795,
+        -0.0038826359001646648,
+        0.347052019548392
       ],
       "limits": [
-        0.0,
-        4.0
+        -0.3,
+        0.8
       ],
       "velocity_limit": 10.0,
-      "effort_limit": 100.0
+      "effort_limit": 150.0
     }
   ],
   "motors": [
     {
-      "name": "left_motor",
-      "type": "falcon500",
-      "joint": "Elevator_Joint",
-      "gear_ratio": 7.75,
-      "controller_type": "can",
-      "hal_port": 0,
-      "inverted": false
-    },
-    {
-      "name": "right_motor",
-      "type": "falcon500",
-      "joint": "Elevator_Joint",
+      "name": "Left",
+      "type": "krakenx60",
+      "joint": "Elevator",
       "gear_ratio": 7.75,
       "controller_type": "can",
       "hal_port": 1,
-      "inverted": false
+      "inverted": true
+    },
+    {
+      "name": "Right",
+      "type": "krakenx60",
+      "joint": "Elevator",
+      "gear_ratio": 7.75,
+      "controller_type": "can",
+      "hal_port": 2,
+      "inverted": true
     }
   ],
   "sensors": []
